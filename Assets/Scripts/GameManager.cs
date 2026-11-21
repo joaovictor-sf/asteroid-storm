@@ -22,6 +22,15 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI textoVidas;
     public GameObject painelGameOver;
 
+    [Header("Menus e UI")]
+    public GameObject painelMainMenu;
+    public GameObject hudGameplay;
+    public PlayerController player; // Arraste o objeto da Nave aqui no Inspector
+    
+    [Header("Pause")]
+    public GameObject painelPause;
+    public bool jogoPausado = false;
+
     void Awake()
     {
         
@@ -37,7 +46,15 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        AtualizarUI();
+        // Garante que o jogo comece no estado de Menu
+        jogoAtivo = false;
+
+        if (painelMainMenu != null) painelMainMenu.SetActive(true);
+        if (hudGameplay != null) hudGameplay.SetActive(false);
+
+        // O AsteroidSpawner continua ativo para os meteoros caírem no fundo!
+        
+        AtualizarUI();  
         if (painelGameOver != null)
         {
             painelGameOver.SetActive(false);
@@ -49,7 +66,89 @@ public class GameManager : MonoBehaviour
         
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            SairDoJogo();
+            // Se a partida está rolando (ou pausada), ESC alterna o pause
+            if (jogoAtivo)
+            {
+                AlternarPause();
+            }
+            // Se estiver no Main Menu (jogoAtivo == false e não pausado), ESC fecha o jogo
+            else if (!jogoPausado)
+            {
+                SairDoJogo();
+            }
+        }
+    }
+
+    public void AlternarPause()
+    {
+        if (jogoPausado)
+        {
+            ResumirJogo();
+        }
+        else
+        {
+            PausarJogo();
+        }
+    }
+
+    public void PausarJogo()
+    {
+        jogoPausado = true;
+        Time.timeScale = 0f;
+        if (painelPause != null) painelPause.SetActive(true);
+    }
+
+    public void ResumirJogo()
+    {
+        jogoPausado = false;
+        Time.timeScale = 1f;
+        if (painelPause != null) painelPause.SetActive(false);
+    }
+
+    // 2. Botão MAIN MENU
+    public void VoltarParaMainMenu()
+    {
+        // Sempre restaura o tempo antes de qualquer mudança de estado
+        Time.timeScale = 1f;
+        jogoPausado = false;
+        jogoAtivo = false;
+
+        // Esconde o pause e o HUD de gameplay, e reabre o Main Menu
+        if (painelPause != null) painelPause.SetActive(false);
+        if (hudGameplay != null) hudGameplay.SetActive(false);
+        if (painelMainMenu != null) painelMainMenu.SetActive(true);
+
+        // Reseta pontuação e vidas para não vazar para a próxima partida
+        pontos = 0;
+        vidas = 3;
+        // Atualize seus textos de UI aqui, se aplicável
+
+        // Limpa asteroides ativos da tela (ajuste o nome da tag/componente conforme o seu projeto)
+        LimparAsteroidesDaCena();
+
+        // Reposiciona a nave fora da tela (posição inicial do menu)
+        if (player != null)
+        {
+            player.StopAllCoroutines();
+            player.transform.position = new Vector3(0f, player.posYForaDaTela, 0f);
+        }
+    }
+
+    // 3. Botão EXIT
+    public void SairPeloPause()
+    {
+        // Garante timeScale normal antes de encerrar
+        Time.timeScale = 1f;
+        SairDoJogo();
+    }
+
+    private void LimparAsteroidesDaCena()
+    {
+        // Exemplo usando Tag "Asteroid" — se usar um script próprio (ex: Asteroid), prefira FindObjectsByType<Asteroid>()
+        GameObject[] asteroides = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject asteroide in asteroides)
+        {
+            Destroy(asteroide);
         }
     }
 
@@ -64,7 +163,23 @@ public class GameManager : MonoBehaviour
         #endif
     }
 
-    
+    // Conecte esta função no botão "Jogar" (OnClick)
+    public void IniciarJogo()
+    {
+        if (painelMainMenu != null) painelMainMenu.SetActive(false);
+        if (hudGameplay != null) hudGameplay.SetActive(true);
+
+        // Reseta pontos e vidas (caso seja uma nova partida)
+        pontos = 0;
+        vidas = 3;
+        // Chame aqui sua função que atualiza os textos de UI, se tiver uma
+
+        // Chama a animação de entrada da nave pela parte de baixo
+        if (player != null)
+        {
+            StartCoroutine(player.EntrarEmCena());
+        }
+    }
     public void AdicionarPontos(int quantidade)
     {
         if (!jogoAtivo) return;

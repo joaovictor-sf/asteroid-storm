@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -22,10 +23,17 @@ public class PlayerController : MonoBehaviour
     public Sprite spriteDano;
     public Sprite spriteDano1;
     public Sprite spriteDano2;
+    [Header("Animação de Entrada")]
+    public float posYForaDaTela = -7f; // Posição escondida lá embaixo
+    public float posYInicial = -3.5f;  // Posição onde a nave para para jogar
+    public float velocidadeEntrada = 4f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // Já deixa a nave escondida lá embaixo antes de apertar Jogar
+        transform.position = new Vector3(0f, posYForaDaTela, 0f);
     }
 
     void Update()
@@ -68,6 +76,25 @@ public class PlayerController : MonoBehaviour
         }
 
         rb.linearVelocity = novaVelocidade;
+    }
+
+    public IEnumerator EntrarEmCena()
+    {
+        // Garante que ela comece no centro inferior, fora da tela
+        transform.position = new Vector3(0f, posYForaDaTela, 0f);
+
+        // Sobe suavemente até atingir a posição inicial de gameplay
+        while (transform.position.y < posYInicial)
+        {
+            transform.position += Vector3.up * velocidadeEntrada * Time.deltaTime;
+            yield return null; // Espera o próximo frame
+        }
+
+        // Crava na posição exata
+        transform.position = new Vector3(0f, posYInicial, 0f);
+
+        // Libera o jogo e os controles!
+        GameManager.Instance.jogoAtivo = true;
     }
 
     public void AtualizarAparenciaNave(int vidasRestantes)
